@@ -1,22 +1,23 @@
 const Profile = require("../models/Profile");
 const User = require("../models/User");
+const { uploadImageToCloudinary } = require("../utils/imageUploader");
 
 // updateProfile
 exports.updateProfile = async (req, res) => {
   try {
     // fetch data from request body
-    const { dateOfBirth = "", about = "", contactNumber, gender } = req.body;
+    const { dateOfBirth = "", about = "", contactNumber } = req.body;
 
     // fetch userId
     const id = req.user.id;
 
     // validation
-    if (!contactNumber || !gender || !id) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
-    }
+    // if (!contactNumber || !gender || !id) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "All fields are required",
+    //   });
+    // }
 
     // find Profile
     const userDetails = await User.findById(id);
@@ -27,7 +28,6 @@ exports.updateProfile = async (req, res) => {
     // update profile details
     profileDetails.dateOfBirth = dateOfBirth;
     profileDetails.about = about;
-    profileDetails.gender = gender;
     profileDetails.contactNumber = contactNumber;
 
     await profileDetails.save();
@@ -35,7 +35,7 @@ exports.updateProfile = async (req, res) => {
     // retrun response
     return res.status(200).json({
       success: true,
-      message: "Profile Upload Successfully",
+      message: "Profile updated successfully",
       profileDetails,
     });
   } catch (error) {
@@ -55,7 +55,7 @@ exports.deleteAccount = async (req, res) => {
     const id = req.user.id;
 
     // validation
-    const userDetails = await User.findById(id);
+    const userDetails = await User.findById({ _id: id });
     if (!userDetails) {
       return res.status(404).json({
         success: false,
@@ -101,6 +101,7 @@ exports.getUserDetails = async (req, res) => {
         message: "User not found",
       });
     }
+    console.log(userDetails);
 
     // return response
     return res.status(200).json({
@@ -117,3 +118,7 @@ exports.getUserDetails = async (req, res) => {
     });
   }
 };
+
+//updateDisplayPicture
+
+// getEnrolledCourses

@@ -1,5 +1,5 @@
 const Course = require("../models/Course");
-const Tag = require("../models/Tag");
+const Category = require("../models/Category");
 const User = require("../models/User");
 const { uploadImageToCloudinary } = require("../utils/imageUploader");
 require("dotenv").config();
@@ -7,9 +7,20 @@ require("dotenv").config();
 //createCourse
 exports.createCourse = async (req, res) => {
   try {
+    // Get user ID from request object
+    const userId = req.user.id;
+
     // data fetch from req.body
-    const { courseName, courseDescription, whatYouWillLearn, price, tag } =
-      req.body;
+    const {
+      courseName,
+      courseDescription,
+      whatYouWillLearn,
+      price,
+      tag,
+      category,
+      status,
+      instructions,
+    } = req.body;
 
     // get thumbnail
     const thumbnail = req.files.thumbnailImage;
@@ -21,33 +32,36 @@ exports.createCourse = async (req, res) => {
       !whatYouWillLearn ||
       !price ||
       !tag ||
-      !thumbnail
+      !thumbnail ||
+      !category
     ) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: "All Fields are Mandatory",
       });
     }
+    if (!status || status === undefined) {
+      status = "Draft";
+    }
 
-    // check for instructor
-    const userId = req.user.id;
-    const instructorDetails = await User.findById(userId);
-    console.log("Instructor Details: ", instructorDetails);
-    // TODO: Verify that userId and instructorDetails._id are same or different ?
+    // Check if the user is an instructor
+    const instructorDetails = await User.findById(userId, {
+      accountType: "Instructor",
+    });
 
     if (!instructorDetails) {
       return res.status(404).json({
         success: false,
-        message: "Instructor Details not found",
+        message: "Instructor Details Not Found",
       });
     }
 
-    // check given tag is valid or not
-    const tagDetails = await Tag.findById(tag);
-    if (!tagDetails) {
+    // check given category is valid or not
+    const categoryDetails = await Category.findById(category);
+    if (!categoryDetails) {
       return res.status(404).json({
         success: false,
-        message: "Tag Details not found",
+        message: "Category Details Not Found",
       });
     }
 
@@ -56,16 +70,20 @@ exports.createCourse = async (req, res) => {
       thumbnail,
       process.env.FOLDER_NAME
     );
+    console.log(thumbnailImage);
 
     //create an entry for new course
     const newCourse = await Course.create({
       courseName,
       courseDescription,
       instructor: instructorDetails._id,
-      whatYouWillLearn,
+      whatYouWillLearn: whatYouWillLearn,
       price,
-      tag: tagDetails._id,
+      tag: tag,
+      category: categoryDetails._id,
       thumbnail: thumbnailImage.secure_url,
+      status: status,
+      instructions: instructions,
     });
 
     //add the new course to the user schema of Instructor
@@ -79,13 +97,21 @@ exports.createCourse = async (req, res) => {
       { new: true }
     );
 
-    //update the Tag Schema
-    // TODO
+    // Add the new course to the Categories
+    await Category.findByIdAndUpdate(
+      { _id: category },
+      {
+        $push: {
+          course: newCourse._id,
+        },
+      },
+      { new: true }
+    );
 
     //return response
     return res.status(200).json({
       success: true,
-      message: "Course created Successfully",
+      message: "Course Created Successfully",
       data: newCourse,
     });
   } catch (error) {
@@ -107,6 +133,7 @@ exports.showAllCourses = async (req, res) => {
         courseName: true,
         price: true,
         thumbnail: true,
+        instructor: true,
         ratingAndReviews: true,
         studentsEnrolled: true,
       }

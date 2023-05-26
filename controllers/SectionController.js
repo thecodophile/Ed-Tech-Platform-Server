@@ -11,7 +11,7 @@ exports.createSection = async (req, res) => {
     if (!sectionName || !courseId) {
       return res.status(400).json({
         success: false,
-        message: "Missing Properties",
+        message: "Missing required properties",
       });
     }
 
@@ -27,8 +27,14 @@ exports.createSection = async (req, res) => {
         },
       },
       { new: true }
-    );
-    // ToDo:use populate to replace section/sub-section both in the updatedCourseDetails
+    )
+      .populate({
+        path: "courseContent",
+        populate: {
+          path: "subSection",
+        },
+      })
+      .exec();
 
     //return response
     return res.status(200).json({

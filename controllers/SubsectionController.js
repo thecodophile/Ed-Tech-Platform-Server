@@ -7,13 +7,13 @@ require("dotenv").config();
 exports.createSubSection = async (req, res) => {
   try {
     // fetch data from request body
-    const { sectionId, title, timeDuration, description } = req.body;
+    const { sectionId, title, description } = req.body;
 
     // extract file/video
     const video = req.files.videoFile;
 
     // validation
-    if (!sectionId || !title || !timeDuration || !description || !video) {
+    if (!sectionId || !title || !description || !video) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -30,7 +30,7 @@ exports.createSubSection = async (req, res) => {
     // create sub-section
     const subSectionDetails = await SubSection.create({
       title: title,
-      timeDuration: timeDuration,
+      timeDuration: `${uploadDetails.duration}`,
       description: description,
       videoUrl: uploadDetails.secure_url,
     });
@@ -44,14 +44,13 @@ exports.createSubSection = async (req, res) => {
         },
       },
       { new: true }
-    );
-    // Todo: log updated section here, after adding populate quary
+    ).populate("subSection");
 
     //retrun response
     return res.status(200).json({
       success: true,
       message: "Sub Section Created Successfully",
-      updatedSection,
+      data: updatedSection,
     });
   } catch (error) {
     console.log("Error occured while creating Sub Section: ", error);
@@ -67,37 +66,37 @@ exports.createSubSection = async (req, res) => {
 exports.updateSubSection = async (req, res) => {
   try {
     // fetch data from request body
-    const { subSectionId, title, timeDuration, description } = req.body;
-
-    // extract file/video
-    const video = req.files.videoFile;
+    const { subSectionId, title, description } = req.body;
+    const subSection = await SubSection.findById(subSectionId);
 
     // data validation
-    if (!subSectionId || !title || !timeDuration || !description || !video) {
-      return res.status(400).json({
+    if (!subSectionId) {
+      return res.status(404).json({
         success: false,
-        message: "Missing Properties",
+        message: "SubSection not found",
       });
     }
 
-    //upload video to cloudinary
-    // ToDo: change ImageUploader utility fun name as this fun is not only can upload image file, it can upload any type of file
-    const uploadDetails = await uploadImageToCloudinary(
-      video,
-      process.env.FOLDER_NAME
-    );
+    if (title !== undefined) {
+      subSection.title = title;
+    }
 
-    // update data
-    const subSection = await SubSection.findByIdAndUpdate(
-      subSectionId,
-      {
-        title,
-        timeDuration,
-        description,
-        videoUrl: uploadDetails.secure_url,
-      },
-      { new: true }
-    );
+    if (description !== undefined) {
+      subSection.description = description;
+    }
+
+    //upload video to cloudinary
+    if (req.files && req.files.video !== undefined) {
+      const video = req.files.video;
+      const uploadDetails = await uploadImageToCloudinary(
+        video,
+        process.env.FOLDER_NAME
+      );
+      subSection.videoUrl = uploadDetails.secure_url;
+      subSection.timeDuration = `${uploadDetails.duration}`;
+    }
+
+    await subSection.save();
 
     // return response
     return res.status(200).json({
@@ -118,12 +117,29 @@ exports.updateSubSection = async (req, res) => {
 // deleteSubSection
 exports.deleteSubSection = async (req, res) => {
   try {
-    // get ID - assuming that we are sending ID in params
-    const { subSectionId } = req.params;
+    // get ID
+    const { subSectionId, sectionId } = req.body;
+
+    // pull from section
+    await Section.findByIdAndUpdate(
+      { _id: sectionId },
+      {
+        $pull: {
+          subSection: subSectionId,
+        },
+      }
+    );
 
     // delete entry
-    await SubSection.findByIdAndDelete(subSectionId);
-    //TODO[testing]:Do i need to delete the entry from the Section schema??
+    const subSection = await SubSection.findByIdAndDelete({
+      _id: subSectionId,
+    });
+
+    if (!subSection) {
+      return res
+        .status(404)
+        .json({ success: false, message: "SubSection not found" });
+    }
 
     //return response
     return res.status(200).json({
