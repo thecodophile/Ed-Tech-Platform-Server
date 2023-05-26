@@ -13,28 +13,30 @@ const OTPSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now(),
-    expires: 5 * 60,
+    expires: 60 * 5,
   },
 });
 
 //function to send email
 const sendVerificationEmail = async (email, otp) => {
   try {
-    const mailResponse = await mailSender(
-      email,
-      "Verification Email from Codophile",
-      otp
-    );
-    console.log("Email send successfully: ", mailResponse);
+    const mailResponse = await mailSender(email, "Verification Email", otp);
+    console.log("Email sent successfully: ", mailResponse.response);
   } catch (error) {
-    console.log("Error occured while sending mails: ", error);
+    console.log("Error occurred while sending email: ", error);
     throw error;
   }
 };
 
 //pre middleware
-OTPSchema.pre("send", async function (next) {
-  await sendVerificationEmail(this.email, this.otp);
+//send email after the document has been saved
+OTPSchema.pre("save", async function (next) {
+  console.log("New document saved to database");
+
+  // Only send an email when a new document is created
+  if (this.isNew) {
+    await sendVerificationEmail(this.email, this.otp);
+  }
   next();
 });
 
