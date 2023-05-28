@@ -50,12 +50,11 @@ exports.sendOTP = async (req, res) => {
     console.log("otpBody", otpBody);
 
     //return response successful
-    res.status(200),
-      json({
-        success: true,
-        message: "OTP Sent Successfully",
-        otp,
-      });
+    res.status(200).json({
+      success: true,
+      message: "OTP Sent Successfully",
+      otp,
+    });
   } catch (error) {
     console.log("Error Occurred when generate otp: ", error);
     return (
@@ -123,13 +122,13 @@ exports.signUp = async (req, res) => {
     console.log("recentOtp", recentOtp);
 
     // validate OTP
-    if (recentOtp.length == 0) {
+    if (recentOtp.length === 0) {
       // OTP not found for the email
       return res.status(400).json({
         success: false,
         message: "The OTP is not valid",
       });
-    } else if (otp !== recentOtp.otp) {
+    } else if (otp !== recentOtp[0].otp) {
       // invalid OTP
       return res.status(400).json({
         success: false,
@@ -173,13 +172,10 @@ exports.signUp = async (req, res) => {
     });
   } catch (error) {
     console.log("Error Occurred when trying to signUp: ", error);
-    return (
-      res.status(500),
-      json({
-        success: false,
-        message: "User cannot be registered. Please try again.",
-      })
-    );
+    return res.status(500).json({
+      success: false,
+      message: "User cannot be registered. Please try again.",
+    });
   }
 };
 

@@ -22,6 +22,7 @@ exports.createSubSection = async (req, res) => {
 
     //upload video to cloudinary
     // ToDo: change ImageUploader utility fun name as this fun is not only can upload image file, it can upload any type of file
+    console.log("Going to add video file");
     const uploadDetails = await uploadImageToCloudinary(
       video,
       process.env.FOLDER_NAME

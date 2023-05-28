@@ -1,12 +1,13 @@
 const Profile = require("../models/Profile");
 const User = require("../models/User");
 const { uploadImageToCloudinary } = require("../utils/imageUploader");
+require("dotenv").config();
 
 // updateProfile
 exports.updateProfile = async (req, res) => {
   try {
     // fetch data from request body
-    const { dateOfBirth = "", about = "", contactNumber } = req.body;
+    const { dateOfBirth = "", about = "", contactNumber, gender } = req.body;
 
     // fetch userId
     const id = req.user.id;
@@ -29,6 +30,7 @@ exports.updateProfile = async (req, res) => {
     profileDetails.dateOfBirth = dateOfBirth;
     profileDetails.about = about;
     profileDetails.contactNumber = contactNumber;
+    profileDetails.gender = gender;
 
     await profileDetails.save();
 

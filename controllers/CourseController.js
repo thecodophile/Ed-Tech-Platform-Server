@@ -116,7 +116,7 @@ exports.createCourse = async (req, res) => {
     });
   } catch (error) {
     console.log("Error occured while creating Course: ", error);
-    return res.status(500).jso({
+    return res.status(500).json({
       success: false,
       message: "Failed to create Course",
       error: error.message,
@@ -170,7 +170,7 @@ exports.getCourseDetails = async (req, res) => {
         },
       })
       .populate("category")
-      .populate("ratingAndreviews")
+      .populate("ratingAndReviews")
       .populate({
         path: "courseContent",
         populate: {
